@@ -1,0 +1,50 @@
+body {
+  background: -webkit-gradient(linear, left top, left bottom, from(#CDC), to(#988));
+  background: linear-gradient(#CDC, #988);
+  background-attachment: fixed;
+  color: #000;
+  width: 72%;
+  margin-left: 8%;
+}
+
+header {
+  border-bottom: 1px dashed #000;
+}
+
+footer {
+  border-top: 1px dashed #000;
+  text-align: right;
+}
+
+main {
+  width: 100%;
+}
+
+main .contain {
+  margin: 8em;
+}
+
+main .contain .cx {
+  position: relative;
+  z-index: 14;
+  margin: 2em auto;
+  width: 15vw;
+  height: 15vw;
+  background: -webkit-gradient(linear, left top, left bottom, from(#99DDFF), to(#336688));
+  background: linear-gradient(#99DDFF, #336688);
+  -webkit-transform: rotate(45deg);
+          transform: rotate(45deg);
+}
+
+main .contain .shadow {
+  position: relative;
+  z-index: 4;
+  margin: 2em auto;
+  width: 22vw;
+  height: 4vw;
+  background: radial-gradient(#222, #777);
+  border-radius: 50%;
+  -webkit-box-shadow: 29px 10px 35px 2px #888;
+          box-shadow: 29px 10px 35px 2px #888;
+}
+/*# sourceMappingURL=style.css.map */
