@@ -1649,6 +1649,7 @@ Neo.Painter.prototype.canvasHeight;
 Neo.Painter.prototype.canvas = [];
 Neo.Painter.prototype.canvasCtx = [];
 Neo.Painter.prototype.visible = [];
+Neo.Painter.prototype.opacity = [];
 Neo.Painter.prototype.current = 0;
 
 //Temp Canvas Info
@@ -2639,57 +2640,21 @@ Neo.Painter.prototype.getImage = function (imageWidth, imageHeight) {
   pngCanvasCtx.fillStyle = "#ffffff";
   pngCanvasCtx.fillRect(0, 0, imageWidth, imageHeight);
 
-  if (this.visible[0]) {
-    pngCanvasCtx.drawImage(
-      this.canvas[0],
-      0,
-      0,
-      width,
-      height,
-      0,
-      0,
-      imageWidth,
-      imageHeight
-    );
-  }
-  if (this.visible[1]) {
-    pngCanvasCtx.drawImage(
-      this.canvas[1],
-      0,
-      0,
-      width,
-      height,
-      0,
-      0,
-      imageWidth,
-      imageHeight
-    );
-  }
-  if (this.visible[2]) {
-    pngCanvasCtx.drawImage(
-      this.canvas[2],
-      0,
-      0,
-      width,
-      height,
-      0,
-      0,
-      imageWidth,
-      imageHeight
-    );
-  }
-  if (this.visible[3]) {
-    pngCanvasCtx.drawImage(
-      this.canvas[3],
-      0,
-      0,
-      width,
-      height,
-      0,
-      0,
-      imageWidth,
-      imageHeight
-    );
+  for (var i = 0; i < 4; i++) {
+    if (this.visible[i]) {
+      pngCanvasCtx.globalAlpha = this.opacity[i];
+      pngCanvasCtx.drawImage(
+        this.canvas[i],
+        0,
+        0,
+        width,
+        height,
+        0,
+        0,
+        imageWidth,
+        imageHeight
+      );
+    }
   }
   return pngCanvas;
 };
@@ -2822,11 +2787,11 @@ Neo.Painter.prototype.updateDestCanvas = function (
     ctx.fillRect(x, y, fillWidth, fillHeight);
   }
 
-  if (this.visible[0]) {
-    ctx.drawImage(this.canvas[0], x, y, width, height, x, y, width, height);
-  }
-  if (this.visible[1]) {
-    ctx.drawImage(this.canvas[1], x, y, width, height, x, y, width, height);
+  for (var i = 0; i < 4; i++) {
+    if (this.visible[i]) {
+      ctx.globalAlpha = this.opacity[i];
+      ctx.drawImage(this.canvas[i], x, y, width, height, x, y, width, height);
+    }
   }
   if (useTemp) {
     ctx.globalAlpha = 1.0; //this.alpha;
@@ -3848,7 +3813,7 @@ Neo.Painter.prototype.merge = function (layer, x, y, width, height) {
   var imageData = [];
   var buf32 = [];
   var buf8 = [];
-  for (var i = 0; i < 2; i++) {
+  for (var i = 0; i < 4; i++) {
     imageData[i] = this.canvasCtx[i].getImageData(x, y, width, height);
     buf32[i] = new Uint32Array(imageData[i].data.buffer);
     buf8[i] = new Uint8ClampedArray(imageData[i].data.buffer);
@@ -3874,12 +3839,20 @@ Neo.Painter.prototype.merge = function (layer, x, y, width, height) {
     var g1 = buf8[1][index + 1];
     var b1 = buf8[1][index + 2];
     var a1 = buf8[1][index + 3] / 255.0;
+    var r2 = buf8[1][index + 0];
+    var g2 = buf8[1][index + 1];
+    var b2 = buf8[1][index + 2];
+    var a2 = buf8[1][index + 3] / 255.0;
+    var r3 = buf8[1][index + 0];
+    var g3 = buf8[1][index + 1];
+    var b3 = buf8[1][index + 2];
+    var a3 = buf8[1][index + 3] / 255.0;
 
     var a = a0 + a1 - a0 * a1;
     if (a > 0) {
-      var r = Math.floor((r1 * a1 + r0 * a0 * (1 - a1)) / a + 0.5);
-      var g = Math.floor((g1 * a1 + g0 * a0 * (1 - a1)) / a + 0.5);
-      var b = Math.floor((b1 * a1 + b0 * a0 * (1 - a1)) / a + 0.5);
+      var r = Math.floor((r3 * a3 + r2 * a2 + r1 * a1 + r0 * a0 * (1 - a1)) / a + 0.5);
+      var g = Math.floor((g3 * g3 + g2 * g2 + g1 * a1 + g0 * a0 * (1 - a1)) / a + 0.5);
+      var b = Math.floor((b3 * b3 + b2 * b2 + b1 * a1 + b0 * a0 * (1 - a1)) / a + 0.5);
     }
     buf8[src][index + 0] = 0;
     buf8[src][index + 1] = 0;
@@ -3892,7 +3865,7 @@ Neo.Painter.prototype.merge = function (layer, x, y, width, height) {
     index += 4;
   }
 
-  for (var i = 0; i < 2; i++) {
+  for (var i = 0; i < 4; i++) {
     imageData[i].data.set(buf8[i]);
     this.canvasCtx[i].putImageData(imageData[i], x, y);
   }
@@ -3969,7 +3942,7 @@ Neo.Painter.prototype.pickColor = function (x, y) {
   x = Math.floor(x);
   y = Math.floor(y);
   if (x >= 0 && x < this.canvasWidth && y >= 0 && y < this.canvasHeight) {
-    for (var i = 0; i < 2; i++) {
+    for (var i = 0; i < 4; i++) {
       if (this.visible[i]) {
         var ctx = this.canvasCtx[i];
         var imageData = ctx.getImageData(x, y, 1, 1);
@@ -8390,7 +8363,11 @@ Neo.LayerControl.prototype.init = function (name, params) {
   var layerStrings = [Neo.translate("Layer0"), Neo.translate("Layer1"), Neo.translate("Layer2"), Neo.translate("Layer3")];
 
   this.element.innerHTML =
-    "<div class='bg'></div><div class='label0'>" +
+    "<div class='opacity3'></div>" +
+    "<div class='opacity2'></div>" +
+    "<div class='opacity1'></div>" +
+    "<div class='opacity0'></div>" +
+    "<div class='label0'>" +
     layerStrings[0] +
     "</div><div class='label1'>" +
     layerStrings[1] +
@@ -8409,6 +8386,10 @@ Neo.LayerControl.prototype.init = function (name, params) {
   this.line1 = this.element.getElementsByClassName("line1")[0];
   this.line2 = this.element.getElementsByClassName("line2")[0];
   this.line3 = this.element.getElementsByClassName("line3")[0];
+  this.opacity0 = this.element.getElementsByClassName("opacity0")[0];
+  this.opacity1 = this.element.getElementsByClassName("opacity1")[0];
+  this.opacity2 = this.element.getElementsByClassName("opacity2")[0];
+  this.opacity3 = this.element.getElementsByClassName("opacity3")[0];
 
   this.line0.style.display = "none";
   this.line1.style.display = "none";
@@ -8428,14 +8409,13 @@ Neo.LayerControl.prototype._mouseDownHandler = function (e) {
     var visible = Neo.painter.visible[Neo.painter.current];
     Neo.painter.visible[Neo.painter.current] = visible ? false : true;
   } else {
-    if (Neo.painter.current == 0) {
-      Neo.painter.current = 1;
-    } else if (Neo.painter.current == 1) {
-      Neo.painter.current = 2;
-    } else if (Neo.painter.current == 2) {
-      Neo.painter.current = 3;
-    } else if (Neo.painter.current == 3) {
-      Neo.painter.current = 0;
+    var x = e.offsetX / 50.0;
+    var y = (3 - Math.floor(e.offsetY / 10)) % 4;
+
+    if (Neo.painter.current == y) {
+      Neo.painter.opacity[y] = x;
+    } else {
+      Neo.painter.current = y;
     }
   }
   Neo.painter.updateDestCanvas(
@@ -8461,6 +8441,10 @@ Neo.LayerControl.prototype.update = function () {
   this.line1.style.display = Neo.painter.visible[1] ? "none" : "block";
   this.line2.style.display = Neo.painter.visible[2] ? "none" : "block";
   this.line3.style.display = Neo.painter.visible[3] ? "none" : "block";
+  this.opacity0.style.width = Neo.painter.opacity[0] * 48 + "px";
+  this.opacity1.style.width = Neo.painter.opacity[1] * 48 + "px";
+  this.opacity2.style.width = Neo.painter.opacity[2] * 48 + "px";
+  this.opacity3.style.width = Neo.painter.opacity[3] * 48 + "px";
 };
 
 /*
